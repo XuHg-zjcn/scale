@@ -1,0 +1,13 @@
+# build files
+/obj/
+
+# vscode
+/.vscode
+
+# vim
+*.swp
+
+# emacs
+*~
+\#*#
+.#*
