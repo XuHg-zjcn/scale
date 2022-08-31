@@ -22,7 +22,7 @@ const USB_DeviceDescr MyDeviceDescr = {
 const struct MyCfgDescr{
   USB_ConfigDescr c = {0x09, 0x02, sizeof(MyCfgDescr), 0x01, 0x01, 0x00, 0x80, 0x32};
   USB_IntfDescr  i  = {0x09, 0x04, 0x00, 0x00, 0x01, 0xFF, 0x80, 0x55, 0x00};
-  USB_EndpDescr e81 = {0x07, 0x05, 0x81, 0x02, 0x0004, 0x00};
+  USB_EndpDescr e81 = {0x07, 0x05, 0x81, 0x02, 0x0020, 0x00};
   u8 tail = 0;
 }MyConfigDescr;
 
@@ -45,7 +45,7 @@ C_USBD *usbd;
 
 int app(void)
 {
-	int32_t hx_rawv;
+	int32_t hx_rawv[8];
 	usbd = new C_USBD(&R8_USB_CTRL);
 	usbd->Init(&MyDeviceDescr,
 	           &MyConfigDescr,
@@ -69,11 +69,13 @@ int app(void)
 	HX711 hx = HX711(sck, dout);
 	hx.Init(HX711_CHA_128);
 	while(1){
-		hx_rawv = hx.block_raw();
-		snprintf(str, 20, "%8d", hx_rawv);
-		usbd->Send_Pack(0x81, &hx_rawv, 4);
-		oled.setVHAddr(Vert_Mode, 0, 127, 0, 0);
-		oled.text_5x7(str);
+		for(int i=0;i<8;i++){
+			hx_rawv[i] = hx.block_raw();
+			//snprintf(str, 20, "%8d", hx_rawv);
+			//oled.setVHAddr(Vert_Mode, 0, 127, 0, 0);
+			//oled.text_5x7(str);
+		}
+		usbd->Send_Pack(0x81, &hx_rawv, 4*8);
 	}
 	return 0;
 }
