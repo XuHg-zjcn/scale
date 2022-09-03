@@ -5,8 +5,8 @@
 #include "c_usb.hpp"
 #include "hx711.hpp"
 #include "ssd1306.hpp"
+#include "font_show.hpp"
 
-char str[20];
 /* Device Descriptor */
 const USB_DeviceDescr MyDeviceDescr = {
   0x12, 0x01,              // bLength, bDescriptorType
@@ -145,9 +145,7 @@ int app(void)
 			if(i%128 == 0){
 				int sum_x = sum256(hx_rawv, (i+1)&0xff) - x0;
 				int mg = ((int64_t)sum_x*26575397)>>32;
-				snprintf(str, 20, "%8d", mg);
-				oled.setVHAddr(Vert_Mode, 0, 127, 0, 0);
-				oled.text_5x7(str);
+				show_mg10(oled, dev, mg/10);
 			}
 		}
 	}
