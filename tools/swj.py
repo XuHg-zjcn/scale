@@ -24,12 +24,13 @@ def find_usb(vid=0xffff, pid=0xa05c):
     return ep_read, ep_write
 
 N = 256
+#flt = signal.windows.hann(64)
 
 if __name__ == '__main__':
     ep_r, ep_w = find_usb()
     lst = []
     win = signal.windows.hann(N)
-    #t_ = time.time()
+    win /= win.mean()
     while True:
         data = ep_r.read(4*8, timeout=0)
         values = struct.unpack('i'*8, data)
@@ -37,12 +38,12 @@ if __name__ == '__main__':
         if len(lst) < N:
             continue
         lst = lst[-N:]
-        wlst = win*lst
-        #t = time.time()
-        #print(t - t_)
-        #t_ = t
-        print(f'{np.mean(wlst):10.1f}, {np.std(lst):6.2f}')
+        nlst = np.array(lst)
+        wlst = win*nlst
+        wmlst = win*(nlst-nlst.mean())
+        print(f'{np.mean(wlst):10.1f}, {np.std(nlst):6.2f}')
         plt.cla()
-        #plt.plot(np.abs(np.fft.rfft(lst))[1:]/math.sqrt(N))
-        plt.plot(lst)
+        #fftr = np.abs(np.fft.rfft(wmlst))[1:]/math.sqrt(N)
+        #plt.plot(np.convolve(fftr, flt, 'same'))
+        plt.plot(nlst)
         plt.pause(0.01)
