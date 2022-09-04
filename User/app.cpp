@@ -6,6 +6,7 @@
 #include "hx711.hpp"
 #include "ssd1306.hpp"
 #include "font_show.hpp"
+#include "plot.hpp"
 
 /* Device Descriptor */
 const USB_DeviceDescr MyDeviceDescr = {
@@ -120,7 +121,7 @@ int app(void)
 	scl.loadXCfg(GPIO_GP_OD1);
 	sda.loadXCfg(GPIO_GP_OD1);
 	S_I2C si2c = S_I2C(scl, sda);
-	si2c.set_clock(100000);
+	si2c.set_clock(500000);
 	S_I2C_Dev dev = S_I2C_Dev(&si2c, Addr_OLED);
 	SSD1306 oled = SSD1306(&dev);
 	oled.Init();
@@ -145,6 +146,7 @@ int app(void)
 			if(i%128 == 0){
 				int sum_x = sum256(hx_rawv, (i+1)&0xff) - x0;
 				int mg = ((int64_t)sum_x*26575397)>>32;
+				plot_mg(oled, dev, mg);
 				show_mg10(oled, dev, mg/10);
 			}
 		}
