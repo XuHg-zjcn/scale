@@ -99,6 +99,10 @@ const uint32_t win_hann256[256] = {
            641758
 };
 
+int32_t hx_rawv[256];  //HX711原始数据
+volatile int hx_i = 0; //存放下一次数据的位置
+HX711 *hx;
+
 int sum256(int32_t *p, int32_t offset)
 {
 	int sum_x = 0;
@@ -108,14 +112,32 @@ int sum256(int32_t *p, int32_t offset)
 	return sum_x;
 }
 
+void HX_EXTI_Init()
+{
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9);
+	EXTI_InitStructure.EXTI_Line = EXTI_Line9;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+}
+
 int app(void)
 {
-	int32_t hx_rawv[256];
 	usbd = new C_USBD(&R8_USB_CTRL);
 	usbd->Init(&MyDeviceDescr,
 	           &MyConfigDescr,
 	           &MyStringDescrs);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
 	C_Pin scl = C_Pin(1, 10);
 	C_Pin sda = C_Pin(1, 11);
 	scl.loadXCfg(GPIO_GP_OD1);
@@ -131,25 +153,26 @@ int app(void)
 	C_Pin dout = C_Pin((int)0, 9);
 	sck.loadXCfg(GPIO_GP_PP0);
 	dout.loadXCfg(GPIO_In_Float);
-	HX711 hx = HX711(sck, dout);
-	hx.Init(HX711_CHA_128);
-	for(int i=0;i<256;i++){
-		hx_rawv[i] = hx.block_raw();
-	}
-	int32_t x0 = sum256(hx_rawv, 0);
+	hx = new HX711(sck, dout);
+	hx->Init(HX711_CHA_128);
+	HX_EXTI_Init();
+	while(hx_i < 128);
+	while(hx_i >= 128);
+	int32_t x0 = sum256(hx_rawv, hx_i);
+	bool stat = false;
 	while(1){
-		for(int i=0;i<256;i++){
-			hx_rawv[i] = hx.block_raw();
-			if(i%8 == 0){
-				usbd->Send_Pack(0x81, &hx_rawv[(i-8)&0xff], 4*8);
-			}
-			if(i%128 == 0){
-				int sum_x = sum256(hx_rawv, (i+1)&0xff) - x0;
-				int mg = ((int64_t)sum_x*26575397)>>32;
-				plot_mg(oled, dev, mg);
-				show_mg10(oled, dev, mg/10);
-			}
+		if(stat){
+			//在记录前半段时阻塞，已采样到127（下一个为128）时跳出
+			while(hx_i < 128);
+		}else{
+			//在记录后半段时阻塞，已采样到255（下一个为0）时跳出
+			while(hx_i >= 128);
 		}
+		int sum_x = sum256(hx_rawv, hx_i) - x0;
+		int mg = ((int64_t)sum_x*26575397)>>32;
+		plot_mg(oled, dev, mg);
+		show_mg10(oled, dev, mg/10);
+		stat = not stat;  //下一次阻塞另一段
 	}
 	return 0;
 }
@@ -157,4 +180,16 @@ int app(void)
 void USBHD_IRQHandler(void)
 {
 	int endp = usbd->USB_ISR();
+}
+
+void EXTI9_5_IRQHandler(void)
+{
+	if(EXTI_GetITStatus(EXTI_Line9) != RESET){
+		hx_rawv[hx_i] = hx->block_raw();
+		hx_i = (hx_i+1)&0xff;
+		if(hx_i%8 == 0){
+			usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);
+		}
+		EXTI_ClearITPendingBit(EXTI_Line9);
+	}
 }

@@ -24,6 +24,7 @@ extern "C"{
 
 int app(void);
 void USBHD_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void EXTI9_5_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 #ifdef __cplusplus
 };
