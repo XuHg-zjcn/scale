@@ -1,5 +1,6 @@
 # build files
 /obj/
+__pycache__/
 
 # vscode
 /.vscode

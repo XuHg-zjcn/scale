@@ -7,6 +7,7 @@
 #include "ssd1306.hpp"
 #include "font_show.hpp"
 #include "plot.hpp"
+#include "ds18b20.hpp"
 
 /* Device Descriptor */
 const USB_DeviceDescr MyDeviceDescr = {
@@ -102,6 +103,7 @@ const uint32_t win_hann256[256] = {
 int32_t hx_rawv[256];  //HX711原始数据
 volatile int hx_i = 0; //存放下一次数据的位置
 HX711 *hx;
+DS18B20 *ds;
 
 int sum256(int32_t *p, int32_t offset)
 {
@@ -149,6 +151,10 @@ int app(void)
 	oled.Init();
 	oled.fill(0x00);
 
+	C_Pin dt = C_Pin((int)0, 8);
+	dt.loadXCfg(GPIO_GP_OD1);
+	ds = new DS18B20(dt);
+
 	C_Pin sck = C_Pin((int)0, 10);
 	C_Pin dout = C_Pin((int)0, 9);
 	sck.loadXCfg(GPIO_GP_PP0);
@@ -173,6 +179,17 @@ int app(void)
 		plot_mg(oled, dev, mg);
 		show_mg10(oled, dev, mg/10);
 		stat = not stat;  //下一次阻塞另一段
+		if(stat){
+			int16_t temp = ds->read_temp();
+			char str[6];
+			snprintf(str, 6, "%5d", temp);
+			oled.setVHAddr(Vert_Mode, 98, 127, 7, 7);
+			oled.text_5x7(str);
+			ds->convert_temp();
+			*(int32_t *)&str[0] = sum_x;
+			*(int16_t *)&str[4] = temp;
+			usbd->Send_Pack(0x81, str, 6);
+		}
 	}
 	return 0;
 }
@@ -188,7 +205,7 @@ void EXTI9_5_IRQHandler(void)
 		hx_rawv[hx_i] = hx->block_raw();
 		hx_i = (hx_i+1)&0xff;
 		if(hx_i%8 == 0){
-			usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);
+			//usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);
 		}
 		EXTI_ClearITPendingBit(EXTI_Line9);
 	}
