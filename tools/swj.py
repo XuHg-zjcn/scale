@@ -23,7 +23,7 @@ def find_usb(vid=0xffff, pid=0xa05c):
         lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
     return ep_read, ep_write
 
-N = 256
+N = 64
 #flt = signal.windows.hann(64)
 
 if __name__ == '__main__':
