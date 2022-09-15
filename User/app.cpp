@@ -9,6 +9,7 @@
 #include "plot.hpp"
 #include "ds18b20.hpp"
 #include "filter.h"
+#include "keys.h"
 
 /* Device Descriptor */
 const USB_DeviceDescr MyDeviceDescr = {
@@ -71,6 +72,14 @@ void HX_EXTI_Init()
 	NVIC_Init(&NVIC_InitStructure);
 }
 
+volatile int32_t x0;
+int32_t mean;
+
+void clear0()
+{
+	x0 = mean;
+}
+
 int app(void)
 {
 	usbd = new C_USBD(&R8_USB_CTRL);
@@ -89,6 +98,9 @@ int app(void)
 	oled.Init();
 	oled.fill(0x00);
 
+	Keyboard_Init(72, 5000);
+	kfdown[0] = &clear0;
+
 	C_Pin dt = C_Pin((int)0, 8);
 	dt.loadXCfg(GPIO_GP_OD1);
 	ds = new DS18B20(dt);
@@ -101,7 +113,7 @@ int app(void)
 	hx->Init(HX711_CHA_128);
 	HX_EXTI_Init();
 	while(hx_i < 48);
-	int32_t x0 = hann_filter(5, hx_i-1);
+	x0 = hann_filter(5, hx_i-1);
 	int a=32, b=48;
 	while(1){
 		if(a < b){
@@ -109,8 +121,8 @@ int app(void)
 		}else{
 			while(hx_i < b || hx_i >= a);
 		}
-		int mean = hann_filter(5, b) - x0;
-		int mg = -((int64_t)mean*3501683581UL)>>32;
+		mean = hann_filter(5, b);
+		int mg = ((int64_t)(mean-x0)*2492301481UL)>>32;
 		plot_mg(oled, dev, mg);
 		show_mg10(oled, dev, mg/10);
 		a = (a+16)&0xff;
