@@ -97,7 +97,7 @@ int32_t hann_filter(uint32_t win2N, int curr){
 	for(int j=0;j<hwin;j++){
 		sum_x += ((int64_t)hx_rawv[(curr+j)&0xff]*pwin[j])>>32;
 	}
-	curr += 1UL<<win2N;
+	curr += (1UL<<win2N) - 1;
         for(int j=hwin-1;j>=0;j--){
 		sum_x += ((int64_t)hx_rawv[(curr-j)&0xff]*pwin[j])>>32;
 	}
