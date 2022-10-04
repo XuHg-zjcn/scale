@@ -30,11 +30,11 @@ if __name__ == '__main__':
     f = open('save_tw.dat', 'wb')
     i = 0
     while True:
-        data = ep_r.read(6, timeout=0)
-        mg, tmp = struct.unpack('ih', data)
+        data = ep_r.read(8, timeout=0)
+        mg, tmp1, tmp2 = struct.unpack('<ihh', data)
         time_4B = int(time.time()).to_bytes(4, 'big')
         f.write(time_4B)
         f.write(data)
         f.flush()
-        print(f'{mg}, {tmp}')
+        print(f'{mg}, {tmp1/256+40:.3f}, {tmp2/256+40:.3f}')
 

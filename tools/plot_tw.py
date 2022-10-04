@@ -22,46 +22,48 @@ def fill(x):
             x2[i] = np.mean(lst2)
     return x2
 
-f = open('save_tw3.dat', 'rb')
+f = open('save_tw.dat', 'rb')
 l_ts = []
 l_mg = []
-l_tmp = []
+l_tmp1 = []
+l_tmp2 = []
 while True:
-    data = f.read(10)
-    if len(data) != 10:
+    data = f.read(12)
+    if len(data) != 12:
         break
     ts = struct.unpack('>I', data[:4])[0]
-    mg, tmp = struct.unpack('ih', data[4:])
-    if mg < -2000 or mg > 2500:
-        mg = None
-    if tmp < 380 or tmp > 450:
-        tmp = None
+    mg, tmp1, tmp2 = struct.unpack('<ihh', data[4:])
+    #if mg < 200000 or mg > 213000:
+    #    mg = None
+    tmp1 = tmp1/256+40
+    tmp2 = tmp2/256+40
     l_ts.append(ts)
     l_mg.append(mg)
-    l_tmp.append(tmp)
+    l_tmp1.append(tmp1)
+    l_tmp2.append(tmp2)
 
-nlst = np.array((l_ts, l_mg, l_tmp)).transpose()
-for i in range(2, len(l_tmp)-2):
-    if l_tmp[i] and l_tmp[i-3:i+4].count(None) <= 3:
-        filt = list(filter(lambda x:x is not None, l_tmp[i-3:i]+l_tmp[i+1:i+4]))
-        mead = np.median(filt)
-        if abs(l_tmp[i] - mead) > 2:
-            nlst[i,2] = None
 
-l_mg2 = np.array(fill(nlst[:,1]))
-l_tmp2 = np.array(fill(nlst[:,2]))
+l_ts = np.array(l_ts)
+l_mg = np.array(l_mg)
+l_tmp1 = np.array(l_tmp1)
+l_tmp2 = np.array(l_tmp2)
+l_tmp = (l_tmp1+l_tmp2)/2
+l_pred1 = 211300-(l_tmp-26)*800
+l_pred2 = 212100-(l_tmp-26)*650
+l_pred3 = 211000-(l_tmp-26)*500
+l_pred4 = 211080-(l_tmp-26)*300
 
-lx2 = (l_tmp2-445)*80
-t = np.arange(2000)
-w = np.exp(-t/50) + np.exp(-t/150)
-w /= w.sum()
-lx3 = np.convolve(lx2, w)
-lx3 = lx3[:len(l_mg2)]
+h = np.exp(-np.arange(300)/60)
+h /= h.sum()
+l_pred5 = np.convolve(l_pred1, h, 'vaild')
 
-plt.plot(l_mg2)
+plt.plot(l_mg[299:], c='r')
+plt.plot(l_pred1[299:])
+plt.plot(l_pred5)
 #plt.twinx()
-plt.plot(lx2, c='r')
-plt.plot(lx3, c='g')
-#plt.show()
-plt.plot(l_mg2-lx3)
+plt.plot(l_mg[299:] - l_pred5+210000)
+#plt.plot(l_mg-l_pred2, c='r')
+#plt.plot(l_tmp1)
+#plt.plot(l_tmp2)
+#plt.plot(l_tmp1-l_tmp2)
 plt.show()

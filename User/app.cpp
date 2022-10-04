@@ -49,9 +49,11 @@ C_USBD *usbd;
 
 int32_t hx_rawv[256];  //HX711原始数据
 volatile int hx_i = 0; //存放下一次数据的位置
-HX711 *hx;
-DS18B20 *ds;
+SSD1306 *oled;
+DS18B20 *ds1;
+DS18B20 *ds2;
 
+extern uint32_t keystat;
 
 void HX_EXTI_Init()
 {
@@ -94,16 +96,19 @@ int app(void)
 	S_I2C si2c = S_I2C(scl, sda);
 	si2c.set_clock(500000);
 	S_I2C_Dev dev = S_I2C_Dev(&si2c, Addr_OLED);
-	SSD1306 oled = SSD1306(&dev);
-	oled.Init();
-	oled.fill(0x00);
+	oled = new SSD1306(&dev);
+	oled->Init();
+	oled->fill(0x00);
 
 	Keyboard_Init(72, 5000);
-	kfdown[0] = &clear0;
+	kfdown[12] = &clear0;
 
-	C_Pin dt = C_Pin((int)0, 8);
-	dt.loadXCfg(GPIO_GP_OD1);
-	ds = new DS18B20(dt);
+	C_Pin dt1 = C_Pin(1, 9);  //top
+	dt1.loadXCfg(GPIO_GP_OD1);
+	ds1 = new DS18B20(dt1);
+	C_Pin dt2 = C_Pin(1, 8);  //bottom
+	dt2.loadXCfg(GPIO_GP_OD1);
+	ds2 = new DS18B20(dt2);
 
 	C_Pin sck = C_Pin((int)0, 10);
 	C_Pin dout = C_Pin((int)0, 9);
@@ -115,6 +120,7 @@ int app(void)
 	while(hx_i < 48);
 	x0 = hann_filter(5, hx_i-1);
 	int a=32, b=48;
+	char str[8];
 	while(1){
 		if(a < b){
 			while(a <= hx_i && hx_i < b);
@@ -122,11 +128,27 @@ int app(void)
 			while(hx_i < b || hx_i >= a);
 		}
 		mean = hann_filter(5, b);
-		int mg = ((int64_t)(mean-x0)*2492301481UL)>>32;
-		plot_mg(oled, dev, mg);
-		show_mg10(oled, dev, mg/10);
+		int mg = ((int64_t)(mean-x0)*2491180449UL)>>32;
+		plot_mg(*oled, dev, mg);
+		show_mg10(*oled, dev, mg/10);
+
+		int tmp1 = ds1->read_temp();
+		int tmp2 = ds2->read_temp();
+		snprintf(str, 6, "%04x", tmp1&0xffff);
+		oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
+		oled->text_5x7(str);
+		snprintf(str, 6, "%04x", tmp2&0xffff);
+		oled->setVHAddr(Vert_Mode, 98, 127, 7, 7);
+		oled->text_5x7(str);
+		ds1->convert_temp();
+		ds2->convert_temp();
+
 		a = (a+16)&0xff;
 		b = (b+16)&0xff;
+		*(int32_t *)&str[0] = mean;
+		*(int16_t *)&str[4] = tmp1;
+		*(int16_t *)&str[6] = tmp2;
+		usbd->Send_Pack(0x81, str, 8);
 	}
 	return 0;
 }
@@ -141,9 +163,9 @@ void EXTI9_5_IRQHandler(void)
 	if(EXTI_GetITStatus(EXTI_Line9) != RESET){
 		hx_rawv[hx_i] = hx->block_raw();
 		hx_i = (hx_i+1)&0xff;
-		if(hx_i%8 == 0){
-			usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);
-		}
+		//if(hx_i%8 == 0){
+		//      usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);
+		//}
 		EXTI_ClearITPendingBit(EXTI_Line9);
 	}
 }
