@@ -3,7 +3,7 @@
 #include "c_pin.hpp"
 #include "s_i2c.hpp"
 #include "c_usb.hpp"
-#include "hx711.hpp"
+#include "adc24.hpp"
 #include "ssd1306.hpp"
 #include "font_show.hpp"
 #include "plot.hpp"
@@ -47,32 +47,14 @@ const struct StringDescrs{
 C_USBD *usbd;
 
 
-int32_t hx_rawv[256];  //HX711原始数据
-volatile int hx_i = 0; //存放下一次数据的位置
+extern int32_t hx_rawv[256];  //HX711原始数据
+extern volatile int hx_i; //存放下一次数据的位置
 SSD1306 *oled;
 DS18B20 *ds1;
 DS18B20 *ds2;
 
 extern uint32_t keystat;
 
-void HX_EXTI_Init()
-{
-	EXTI_InitTypeDef EXTI_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9);
-	EXTI_InitStructure.EXTI_Line = EXTI_Line9;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-}
 
 volatile int32_t x0;
 int32_t mean;
@@ -110,23 +92,13 @@ int app(void)
 	dt2.loadXCfg(GPIO_GP_OD1);
 	ds2 = new DS18B20(dt2);
 
-	C_Pin sck = C_Pin((int)0, 10);
-	C_Pin dout = C_Pin((int)0, 9);
-	sck.loadXCfg(GPIO_GP_PP0);
-	dout.loadXCfg(GPIO_In_Float);
-	hx = new HX711(sck, dout);
-	hx->Init(HX711_CHA_128);
-	HX_EXTI_Init();
+	HX_Init();
 	while(hx_i < 48);
 	x0 = hann_filter(5, hx_i-1);
 	int a=32, b=48;
 	char str[8];
 	while(1){
-		if(a < b){
-			while(a <= hx_i && hx_i < b);
-		}else{
-			while(hx_i < b || hx_i >= a);
-		}
+		Wait_ADC24(a, b);
 		mean = hann_filter(5, b);
 		int mg = ((int64_t)(mean-x0)*2491180449UL)>>32;
 		plot_mg(*oled, dev, mg);
@@ -156,16 +128,4 @@ int app(void)
 void USBHD_IRQHandler(void)
 {
 	int endp = usbd->USB_ISR();
-}
-
-void EXTI9_5_IRQHandler(void)
-{
-	if(EXTI_GetITStatus(EXTI_Line9) != RESET){
-		hx_rawv[hx_i] = hx->block_raw();
-		hx_i = (hx_i+1)&0xff;
-		//if(hx_i%8 == 0){
-		//      usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);
-		//}
-		EXTI_ClearITPendingBit(EXTI_Line9);
-	}
 }
