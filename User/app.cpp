@@ -10,6 +10,7 @@
 #include "ds18b20.hpp"
 #include "filter.h"
 #include "keys.h"
+#include "calc.h"
 
 /* Device Descriptor */
 const USB_DeviceDescr MyDeviceDescr = {
@@ -54,15 +55,9 @@ DS18B20 *ds1;
 DS18B20 *ds2;
 
 extern uint32_t keystat;
-
-
-volatile int32_t x0;
-int32_t mean;
-
-void clear0()
-{
-	x0 = mean;
-}
+extern int az_count;
+extern int32_t filt_data[128];
+extern int filt_i;
 
 int app(void)
 {
@@ -83,7 +78,7 @@ int app(void)
 	oled->fill(0x00);
 
 	Keyboard_Init(72, 5000);
-	kfdown[12] = &clear0;
+	kfdown[12] = &calc_clear;
 
 	C_Pin dt1 = C_Pin(1, 9);  //top
 	dt1.loadXCfg(GPIO_GP_OD1);
@@ -93,16 +88,19 @@ int app(void)
 	ds2 = new DS18B20(dt2);
 
 	HX_Init();
-	while(hx_i < 48);
-	x0 = hann_filter(5, hx_i-1);
+	Wait_ADC24_b(48);
+	calc_init(hann_filter(5, hx_i-1));
 	int a=32, b=48;
 	char str[8];
 	while(1){
 		Wait_ADC24(a, b);
-		mean = hann_filter(5, b);
-		int mg = ((int64_t)(mean-x0)*2491180449UL)>>32;
-		plot_mg(*oled, dev, mg);
+		int mean = hann_filter(5, b);
+		int mg = calc_mg(mean);
+		update_plot(*oled, dev);
 		show_mg10(*oled, dev, mg/10);
+		snprintf(str, 6, "%4d", az_count);
+		oled->setVHAddr(Vert_Mode, 98, 127, 5, 5);
+		oled->text_5x7(str);
 
 		int tmp1 = ds1->read_temp();
 		int tmp2 = ds2->read_temp();

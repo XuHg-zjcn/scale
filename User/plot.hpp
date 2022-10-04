@@ -3,5 +3,5 @@
 #include <stdint.h>
 #include "ssd1306.hpp"
 
-void plot_mg(SSD1306 &oled, S_I2C_Dev &dev, int32_t mg);
+void update_plot(SSD1306 &oled, S_I2C_Dev &dev);
 #endif
