@@ -37,5 +37,6 @@ commit.append('')
 commit.extend('0123456789.-g ')
 
 # write to .c file, arr shape must 2d
-np2c = numpy2ccode('../User/font_12x24.h', 'font12x24', out, commit)
-np2c.conv_1d(Ncol=12*3)
+with open('../User/font_12x24.h', 'w') as f:
+    np2c = numpy2ccode(f, '{:#0Mx}')
+    np2c.write_1d('font12x24', out, Ncol=12*3, commits=commit)
