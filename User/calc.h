@@ -25,8 +25,10 @@ extern "C"{
 #endif
 
 int32_t calc_mg(int32_t x);
+int32_t calc_mg_fast(int32_t x);
 void calc_set(int32_t x0);
 void calc_init(int32_t x0);
+void calc_load_x0();
 void calc_clear();
 
 #ifdef __cplusplus

@@ -20,8 +20,7 @@
 
 
 void HX_Init();
-void Wait_ADC24(int a, int b);
-int Wait_ADC24_b(int b);
+void Wait_ADC24_b(int b);
 int Wait_ADC24_n(int n);
 
 #ifdef __cplusplus

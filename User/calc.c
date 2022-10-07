@@ -93,6 +93,12 @@ int64_t last_nvar(int n, int32_t s)
 	return s2 - (int64_t)s*s/n;
 }
 
+//恢复稍前记录的值为x0
+void calc_load_x0()
+{
+	x0_display = x0_buffer[max(az_count-3, 0)&0x03];
+	az_count = 0;
+}
 
 int isSoftClear(int32_t x, int32_t mg_lclr, int32_t mg_disp)
 {
@@ -100,8 +106,7 @@ int isSoftClear(int32_t x, int32_t mg_lclr, int32_t mg_disp)
 		if(abs(x - last_midd(min(az_count, 5))) < 40){
 			return 1;
 		}else{
-			x0_display = x0_buffer[max(az_count-3, 0)&0x03];
-			az_count = 0;
+			calc_load_x0();
 			return 0;
 		}
 	}else{
@@ -144,4 +149,9 @@ int32_t calc_mg(int32_t x)
 	}else{
 		return mg_disp;
 	}
+}
+
+int32_t calc_mg_fast(int32_t x)
+{
+	return (((int64_t)(x-x0_display))*mgLSB)>>32;
 }

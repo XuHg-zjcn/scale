@@ -75,6 +75,7 @@ extern uint32_t keystat;
 extern int az_count;
 extern int32_t filt_data[128];
 extern int filt_i;
+extern volatile int32_t x0_lastclr;
 
 int app(void)
 {
@@ -107,32 +108,77 @@ int app(void)
 	HX_Init();
 	Wait_ADC24_b(48);
 	calc_init(hann_filter(5, hx_i-1));
-	int a=32, b=48;
+	int a = 32;
 	char str[8];
+	int filt_level = 3;  //滤波器等级
+	int last_disp_i = 32;
+	int last_mean = x0_lastclr;
+	int last_f8 = x0_lastclr;
+	int f32 = x0_lastclr;
+	int mg32 = 0;
 	while(1){
-		Wait_ADC24(a, b);
-		int mean = hann_filter(5, b);
-		int mg = calc_mg(mean);
+		for(int i=0;i<4;i++){
+			int f8 = hann_filter(3, a);
+			if(abs(f8 - last_f8) > 200){
+				filt_level = 3;
+				calc_load_x0();
+			}
+			last_f8 = f8;
+			if(a >= last_disp_i + (1UL<<(filt_level-1))){
+				int mean_d, mg_disp;
+				if(filt_level == 5){
+					last_disp_i = a&(~0xf);
+				}else{
+					last_disp_i = a;
+				}
+				if(filt_level == 5 and i == 0){
+					mean_d = f32;
+					mg_disp = mg32;
+				}else{
+					if(filt_level == 3){
+						mean_d = f8;
+					}else{
+						mean_d = hann_filter(filt_level, a);
+					}
+					mg_disp = calc_mg_fast(mean_d);
+				}
+				show_mg10(*oled, dev, mg_disp/10);
+				snprintf(str, 6, "%4d", filt_level);
+				oled->setVHAddr(Vert_Mode, 98, 127, 5, 5);
+				oled->text_5x7(str);
+				if(filt_level == 3){
+					if(abs(mean_d-last_mean) < 200){
+						filt_level = 4;
+					}
+				}else if(filt_level == 4){
+					if(abs(mean_d-last_mean) < 100){
+						filt_level = 5;
+					}
+				}
+				last_mean = mean_d;
+			}
+			a += 4;
+			Wait_ADC24_b(a);
+		}
+		f32 = hann_filter(5, a);
+		mg32 = calc_mg(f32);
 		update_plot(*oled, dev);
-		show_mg10(*oled, dev, mg/10);
 		snprintf(str, 6, "%4d", az_count);
-		oled->setVHAddr(Vert_Mode, 98, 127, 5, 5);
+		oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
 		oled->text_5x7(str);
 
 		int tmp1 = ds1->read_temp();
 		int tmp2 = ds2->read_temp();
-		snprintf(str, 6, "%04x", tmp1&0xffff);
-		oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
-		oled->text_5x7(str);
+		//snprintf(str, 6, "%04x", tmp1&0xffff);
+		//oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
+		//oled->text_5x7(str);
 		snprintf(str, 6, "%04x", tmp2&0xffff);
 		oled->setVHAddr(Vert_Mode, 98, 127, 7, 7);
 		oled->text_5x7(str);
 		ds1->convert_temp();
 		ds2->convert_temp();
 
-		a = (a+16)&0xff;
-		b = (b+16)&0xff;
-		*(int32_t *)&str[0] = mean;
+		*(int32_t *)&str[0] = f32;
 		*(int16_t *)&str[4] = tmp1;
 		*(int16_t *)&str[6] = tmp2;
 		usbd->Send_Pack(0x81, str, 8);
