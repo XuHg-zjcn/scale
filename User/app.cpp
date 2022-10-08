@@ -28,6 +28,7 @@
 #include "filter.h"
 #include "keys.h"
 #include "calc.h"
+#include "ops.h"
 
 /* Device Descriptor */
 const USB_DeviceDescr MyDeviceDescr = {
@@ -142,7 +143,7 @@ int app(void)
 					}
 					mg_disp = calc_mg_fast(mean_d);
 				}
-				show_mg10(*oled, dev, mg_disp/10);
+				show_mg10(*oled, dev, DIV_ROUND(mg_disp, 10));
 				snprintf(str, 6, "%4d", filt_level);
 				oled->setVHAddr(Vert_Mode, 98, 127, 5, 5);
 				oled->text_5x7(str);
