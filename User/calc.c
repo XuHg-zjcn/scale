@@ -27,6 +27,10 @@ const uint32_t mgLSB = 2491180449;
 int az_count = 0;
 int32_t x0_buffer[4];
 
+const uint32_t creep_change = 209488456;
+const uint32_t creep_coeff = 440411;
+int32_t creep_stat = 0;
+
 int32_t filt_data[128];
 int filt_i = -1;
 
@@ -53,6 +57,7 @@ void calc_init(int32_t x0)
 		filt_data[i] = x0;
 	}
 	calc_set(x0);
+	creep_stat = x0;
 }
 
 int compInc(const void *a, const void *b)
@@ -138,6 +143,8 @@ int isSoftClear(int32_t x, int32_t mg_lclr, int32_t mg_disp)
 int32_t calc_mg(int32_t x)
 {
 	last = x;
+	creep_stat = (((int64_t)creep_stat*((-creep_change)&0xffffffff))>>32) + (((int64_t)x*creep_change)>>32);
+	x += (((int64_t)(x-creep_stat)*creep_coeff)>>32);
 	filt_data[(filt_i+1)&0x7f] = x;
 	filt_i = (filt_i+1)&0x7f;
 	int32_t mg_lclr = (((int64_t)(x-x0_lastclr))*mgLSB)>>32;
@@ -153,5 +160,11 @@ int32_t calc_mg(int32_t x)
 
 int32_t calc_mg_fast(int32_t x)
 {
+	x += (((int64_t)(x-creep_stat)*creep_coeff)>>32);
 	return (((int64_t)(x-x0_display))*mgLSB)>>32;
+}
+
+int32_t calc_creep(int32_t x)
+{
+	return x + (((int64_t)(x-creep_stat)*creep_coeff)>>32);
 }

@@ -76,6 +76,7 @@ extern uint32_t keystat;
 extern int az_count;
 extern int32_t filt_data[128];
 extern int filt_i;
+extern int32_t creep_stat;
 extern volatile int32_t x0_lastclr;
 
 int app(void)
@@ -173,15 +174,14 @@ int app(void)
 		//snprintf(str, 6, "%04x", tmp1&0xffff);
 		//oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
 		//oled->text_5x7(str);
-		snprintf(str, 6, "%04x", tmp2&0xffff);
+		snprintf(str, 6, "%5d", creep_stat/10);
 		oled->setVHAddr(Vert_Mode, 98, 127, 7, 7);
 		oled->text_5x7(str);
 		ds1->convert_temp();
 		ds2->convert_temp();
 
 		*(int32_t *)&str[0] = f32;
-		*(int16_t *)&str[4] = tmp1;
-		*(int16_t *)&str[6] = tmp2;
+		*(int32_t *)&str[4] = calc_creep(f32);
 		usbd->Send_Pack(0x81, str, 8);
 	}
 	return 0;
