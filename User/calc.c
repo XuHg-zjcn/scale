@@ -142,7 +142,6 @@ int isSoftClear(int32_t x, int32_t mg_lclr, int32_t mg_disp)
  */
 int32_t calc_mg(int32_t x)
 {
-	last = x;
 	creep_stat = (((int64_t)creep_stat*((-creep_change)&0xffffffff))>>32) + (((int64_t)x*creep_change)>>32);
 	x += (((int64_t)(x-creep_stat)*creep_coeff)>>32);
 	filt_data[(filt_i+1)&0x7f] = x;

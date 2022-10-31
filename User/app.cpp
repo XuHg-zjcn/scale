@@ -76,6 +76,7 @@ extern uint32_t keystat;
 extern int az_count;
 extern int32_t filt_data[128];
 extern int filt_i;
+extern int32_t last;
 extern int32_t creep_stat;
 extern volatile int32_t x0_lastclr;
 
@@ -144,6 +145,7 @@ int app(void)
 					}
 					mg_disp = calc_mg_fast(mean_d);
 				}
+				last = mean_d;
 				show_mg10(*oled, dev, DIV_ROUND(mg_disp, 10));
 				snprintf(str, 6, "%4d", filt_level);
 				oled->setVHAddr(Vert_Mode, 98, 127, 5, 5);
