@@ -29,43 +29,10 @@
 #include "keys.h"
 #include "calc.h"
 #include "ops.h"
-
-/* Device Descriptor */
-const USB_DeviceDescr MyDeviceDescr = {
-  0x12, 0x01,              // bLength, bDescriptorType
-  0x0110,                  // bcdUSB v1.1
-  0xFF, 0x80, 0x55,        // Class, SubClass, Protocol
-  0x40,                    // bMaxPacketSize0
-  0xFFFF, 0xA05C, 0x0100,  // VID, PID, bcdDevice
-  0x01, 0x02, 0x00,        // iManu, iProd, iSerNum
-  0x01,                    // bNumConfigurations
-};
-
-/* Configration Descriptor */
-const struct MyCfgDescr{
-  USB_ConfigDescr c = {0x09, 0x02, sizeof(MyCfgDescr), 0x01, 0x01, 0x00, 0x80, 0x32};
-  USB_IntfDescr  i  = {0x09, 0x04, 0x00, 0x00, 0x01, 0xFF, 0x80, 0x55, 0x00};
-  USB_EndpDescr e81 = {0x07, 0x05, 0x81, 0x02, 0x0020, 0x00};
-  u8 tail = 0;
-}MyConfigDescr;
-
-const u8 dbufep[] = {0x02, 0x00};
-
-/* String Descriptors */
-const struct StringDescrs{
-  struct MyLangDescr{
-    u8  bLength = sizeof(MyLangDescr);
-    u8  bDescriptorType = 0x03;
-    u16 wLANGIDs[1] = {0x0409};
-  }MyLangDescr;
-  USB_UTF16_DESC(u"Xu Ruijun DIY") MyManuInfo;
-  USB_UTF16_DESC(u"My Scale") MyProdInfo;
-  u8 tail = 0;
-}MyStringDescrs;
-
-C_USBD *usbd;
+#include "usbcmd.h"
 
 
+extern C_USBD *usbd;
 extern int32_t hx_rawv[256];  //HX711原始数据
 extern volatile int hx_i; //存放下一次数据的位置
 SSD1306 *oled;
@@ -82,10 +49,7 @@ extern volatile int32_t x0_lastclr;
 
 int app(void)
 {
-	usbd = new C_USBD(&R8_USB_CTRL);
-	usbd->Init(&MyDeviceDescr,
-	           &MyConfigDescr,
-	           &MyStringDescrs);
+	USBHD_Init();
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
 	C_Pin scl = C_Pin(1, 10);
 	C_Pin sda = C_Pin(1, 11);
@@ -187,9 +151,4 @@ int app(void)
 		usbd->Send_Pack(0x81, str, 8);
 	}
 	return 0;
-}
-
-void USBHD_IRQHandler(void)
-{
-	int endp = usbd->USB_ISR();
 }
