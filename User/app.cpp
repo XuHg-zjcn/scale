@@ -30,6 +30,7 @@
 #include "calc.h"
 #include "ops.h"
 #include "usbcmd.h"
+#include "params.h"
 
 
 extern C_USBD *usbd;
@@ -50,6 +51,7 @@ extern volatile int32_t x0_lastclr;
 int app(void)
 {
 	USBHD_Init();
+	Params_Init();
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
 	C_Pin scl = C_Pin(1, 10);
 	C_Pin sda = C_Pin(1, 11);
