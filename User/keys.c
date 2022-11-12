@@ -143,3 +143,28 @@ void TIM3_IRQHandler(void)
         GPIO_ResetBits(GPIO_Port_Row, GPIO_Pin_7>>scan_i);
     }
 }
+
+/*
+ * 等待到key中的任何一个键按下退出
+ */
+void WaitKey_Down(uint16_t key)
+{
+    while(!(keystat&key));
+}
+
+/*
+ * 等待到key中的所有键弹起后退出
+ */
+void WaitKey_Up(uint16_t key)
+{
+    while(keystat&key);
+}
+
+/*
+ * 等待到key中的任何键出现变化
+ */
+void WaitKey_Change(uint16_t key)
+{
+    uint16_t old = keystat;
+    while(old == keystat);
+}
