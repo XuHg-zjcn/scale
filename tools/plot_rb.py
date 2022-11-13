@@ -19,6 +19,7 @@
 import struct
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import signal
 
 
 def fill(x):
@@ -58,10 +59,20 @@ l_ts = np.array(l_ts)
 l_ad = np.array(l_ad)
 l_rb = np.array(l_rb)
 
+filt = signal.windows.hann(10)[1:-1]
+filt /= filt.sum()
+l_adf = np.convolve(l_ad, filt, 'vaild')
+l_rbf = np.convolve(l_rb, filt, 'vaild')
+
+x = np.arange(len(l_adf))
+
 
 if __name__ == "__main__":
-    plt.plot(l_ad)
-    plt.plot(l_rb)
-    plt.ylim(213000, 214000)
-    #plt.ylim(557500, 558500)
+    plt.scatter(x, l_ad[4:-3], c='r', s=1)
+    plt.plot(l_adf, c='r')
+    plt.scatter(x, l_rb[4:-3], c='g', s=1)
+    plt.plot(l_rbf, c='g')
+    #plt.ylim(210100, 210100+500)
+    plt.ylim(216300, 216400+500)
+    #plt.ylim(554200, 554200+500)
     plt.show()

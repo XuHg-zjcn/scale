@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #########################################################################
-# 蠕变修正预测
+# 用温度预测重量偏差
 # Copyright (C) 2022  Xu Ruijun
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,35 +18,18 @@
 #########################################################################
 import numpy as np
 import matplotlib.pyplot as plt
-from plot_tw import l_mg
+from plot_tw import l_mg2, l_tmp2, lx2
 
+l_mg3 = l_mg2[13900:]
+lx3 = lx2[13900:]
+delt = l_mg3 - lx3
 
-a = 0.0001
-tc = 20
+fmg = np.fft.rfft(l_mg3)
+fx3 = np.fft.rfft(lx3)
+fdlt = np.fft.rfft(delt)
 
-
-t = np.arange(tc*5)
-x = a*np.exp(-t/tc)
-h = a/tc*np.exp(-t/tc)
-h[0] += 1 - h.sum()
-h_ = -a/(1-a)**2/tc*np.exp(-(1+a/(1-a))*t/tc)
-h_[0] += 1 - h_.sum()
-
-
-def iirf(data, chrg=0.04877, coeff=0.0001025):
-    creep_stat = data[0]
-    res = []
-    for i in data:
-        creep_stat = creep_stat*(1-chrg) + i*chrg
-        d = coeff*(i - creep_stat)
-        res.append(i+d)
-    return res
-
-
-conv = np.convolve(l_mg, h_, 'vaild')
-
-plt.plot(l_mg[len(h_)-1:])       # 原始
-#plt.plot(conv)                   # 卷积
-plt.plot(iirf(l_mg)[len(h_)-1:]) # IIR滤波
-plt.ylim(211000, 213000)
+plt.plot(np.abs(fmg))
+plt.plot(np.abs(fx3))
+#plt.plot(np.fft.irfft((fmg/fx3))[:100])
+#plt.plot(np.abs(fdlt))
 plt.show()

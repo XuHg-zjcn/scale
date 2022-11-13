@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #########################################################################
-# 蠕变修正预测
+# 蠕变修正
 # Copyright (C) 2022  Xu Ruijun
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,35 +18,34 @@
 #########################################################################
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import leastsq
 from plot_tw import l_mg
 
+def func(p, x):
+    A, tc, k, b = p
+    return A*np.exp(-x/tc) + k*x + b
 
-a = 0.0001
-tc = 20
+def error(p, x, y):
+    return func(p, x) - y
 
+data = l_mg[2344:2344+30*3]
+#data = l_mg[6801:6900]
 
-t = np.arange(tc*5)
-x = a*np.exp(-t/tc)
-h = a/tc*np.exp(-t/tc)
-h[0] += 1 - h.sum()
-h_ = -a/(1-a)**2/tc*np.exp(-(1+a/(1-a))*t/tc)
-h_[0] += 1 - h_.sum()
+#data = l_mg[97+2:97+30+15]
+#data = l_mg[172+2:172+30*4]
 
+#data = l_mg[412+2:412+30*3]
+#data = l_mg[568:568+30*2]
+#data = l_mg[1465+2:1465+30*7]
 
-def iirf(data, chrg=0.04877, coeff=0.0001025):
-    creep_stat = data[0]
-    res = []
-    for i in data:
-        creep_stat = creep_stat*(1-chrg) + i*chrg
-        d = coeff*(i - creep_stat)
-        res.append(i+d)
-    return res
+p0 = [100, 30, -0.4, data[-1]]
+Xi = np.arange(len(data))
+Yi = data
+Para = leastsq(error, p0, args=(Xi, Yi))
+print(Para)
 
+pred = func(Para[0], Xi)
 
-conv = np.convolve(l_mg, h_, 'vaild')
-
-plt.plot(l_mg[len(h_)-1:])       # 原始
-#plt.plot(conv)                   # 卷积
-plt.plot(iirf(l_mg)[len(h_)-1:]) # IIR滤波
-plt.ylim(211000, 213000)
+plt.plot(data)
+plt.plot(pred)
 plt.show()

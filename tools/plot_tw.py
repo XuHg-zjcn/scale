@@ -38,7 +38,7 @@ def fill(x):
             x2[i] = np.mean(lst2)
     return x2
 
-f = open('save_tw.dat', 'rb')
+f = open('save_tw_3.dat', 'rb')
 l_ts = []
 l_mg = []
 l_tmp1 = []
@@ -73,13 +73,14 @@ h = np.exp(-np.arange(300)/60)
 h /= h.sum()
 l_pred5 = np.convolve(l_pred1, h, 'vaild')
 
-plt.plot(l_mg[299:], c='r')
-plt.plot(l_pred1[299:])
-plt.plot(l_pred5)
-#plt.twinx()
-plt.plot(l_mg[299:] - l_pred5+210000)
-#plt.plot(l_mg-l_pred2, c='r')
-#plt.plot(l_tmp1)
-#plt.plot(l_tmp2)
-#plt.plot(l_tmp1-l_tmp2)
-plt.show()
+if __name__ == "__main__":
+    plt.plot(l_mg, c='r')
+    #plt.plot(l_pred1[299:])
+    #plt.plot(l_pred5)
+    #plt.twinx()
+    #plt.plot(l_mg[299:] - l_pred5+210000)
+    #plt.plot(l_mg-l_pred2, c='r')
+    #plt.plot(l_tmp1)
+    #plt.plot(l_tmp2)
+    #plt.plot(l_tmp1-l_tmp2)
+    plt.show()
