@@ -24,7 +24,6 @@
 #include "ssd1306.hpp"
 #include "font_show.hpp"
 #include "plot.hpp"
-#include "ds18b20.hpp"
 #include "filter.h"
 #include "keys.h"
 #include "calc.h"
@@ -37,8 +36,6 @@ extern C_USBD *usbd;
 extern int32_t hx_rawv[256];  //HX711原始数据
 extern volatile int hx_i; //存放下一次数据的位置
 SSD1306 *oled;
-DS18B20 *ds1;
-DS18B20 *ds2;
 
 extern uint32_t keystat;
 extern int az_count;
@@ -66,13 +63,6 @@ int app(void)
 
 	Keyboard_Init(72, 5000);
 	kfdown[12] = &calc_clear;
-
-	C_Pin dt1 = C_Pin(1, 9);  //top
-	dt1.loadXCfg(GPIO_GP_OD1);
-	ds1 = new DS18B20(dt1);
-	C_Pin dt2 = C_Pin(1, 8);  //bottom
-	dt2.loadXCfg(GPIO_GP_OD1);
-	ds2 = new DS18B20(dt2);
 
 	HX_Init();
 	Wait_ADC24_b(48);
@@ -137,16 +127,9 @@ int app(void)
 		oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
 		oled->text_5x7(str);
 
-		int tmp1 = ds1->read_temp();
-		int tmp2 = ds2->read_temp();
-		//snprintf(str, 6, "%04x", tmp1&0xffff);
-		//oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
-		//oled->text_5x7(str);
 		snprintf(str, 6, "%5d", creep_stat/10);
 		oled->setVHAddr(Vert_Mode, 98, 127, 7, 7);
 		oled->text_5x7(str);
-		ds1->convert_temp();
-		ds2->convert_temp();
 
 		*(int32_t *)&str[0] = f32;
 		*(int32_t *)&str[4] = calc_creep(f32);
