@@ -1,5 +1,6 @@
 #include "usbcmd.h"
 #include "c_usb.hpp"
+#include "params.h"
 
 
 /* Device Descriptor */
@@ -22,8 +23,6 @@ const struct MyCfgDescr{
   u8 tail = 0;
 }MyConfigDescr;
 
-const u8 dbufep[] = {0x02, 0x00};
-
 /* String Descriptors */
 const struct StringDescrs{
   struct MyLangDescr{
@@ -37,8 +36,12 @@ const struct StringDescrs{
 }MyStringDescrs;
 
 C_USBD *usbd;
-uint8_t USB_buffer[128];
+uint8_t USB_EP1_buffer[128];
 
+extern int32_t hx_rawv[256];  //HX711原始数据
+extern volatile int hx_i; //存放下一次数据的位置
+
+USBCMD_DataReq usb_auto_report = {0};
 
 void USBHD_Init()
 {
@@ -46,12 +49,58 @@ void USBHD_Init()
 	usbd->Init(&MyDeviceDescr,
 		&MyConfigDescr,
 		&MyStringDescrs);
+	usbd->Set_Mode(0x01, true, true, false);
+	usbd->Set_Buffer(0x01, USB_EP1_buffer);
+}
+
+int USBCMD_CollData(USBCMD_DataReq *req, uint8_t *pTx)
+{
+  int n = 0;
+  if(req->raw_ad){
+	u32 data = hx_rawv[(hx_i-1)&0xff];
+	*pTx++ = data&0xff;
+	*pTx++ = (data>>8)&0xff;
+	*pTx++ = (data>>16)&0xff;
+    n += 3;
+  }
+  return n;
+}
+
+int USBCMD_Proc(u8 *pRx)
+{
+  int n = 0;
+  u8 *pTx = &USB_EP1_buffer[64];
+  switch((USBCMD_Type)(*pRx++)){
+  case USBCMD_ReadOnce_Data:
+    n += USBCMD_CollData((USBCMD_DataReq *)(pRx++), pTx);
+    break;
+  case USBCMD_ReadRepeat_Data:
+    *(u8*)&usb_auto_report = *pRx++;
+    break;
+  case USBCMD_Read_Stat:
+    break;
+  case USBCMD_Read_Params:
+    break;
+  case USBCMD_Write_Params:
+    Params_Write((Params *)pRx);
+    break;
+  default:
+    break;
+  }
+  return n;
 }
 
 void USBHD_IRQHandler(void)
 {
-        int endp = usbd->USB_ISR();
-	if(endp == 0x81){
-		u8 RxLen = usbd->regs->RX_LEN;
-	}
+  int endp = usbd->USB_ISR();
+  if(endp == 0x01){
+    u8 RxLen = usbd->regs->RX_LEN;
+    if(RxLen >= 1){
+      u8 *pRx = &USB_EP1_buffer[0];
+      int n = USBCMD_Proc(pRx);
+      if(n > 0){
+        usbd->Send_Pack(0x81, n);
+      }
+    }
+  }
 }

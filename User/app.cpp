@@ -44,6 +44,8 @@ extern int filt_i;
 extern int32_t last;
 extern int32_t creep_stat;
 extern volatile int32_t x0_lastclr;
+extern uint8_t USB_EP1_buffer[128];
+extern USBCMD_DataReq usb_auto_report;
 
 int app(void)
 {
@@ -75,9 +77,29 @@ int app(void)
 	int last_f8 = x0_lastclr;
 	int f32 = x0_lastclr;
 	int mg32 = 0;
+	uint8_t *pTx = &USB_EP1_buffer[64];
+	int32_t usb_bytes = 0;
 	while(1){
 		for(int i=0;i<4;i++){
 			int f8 = hann_filter(3, a);
+			if(usb_auto_report.raw_ad){
+				*pTx++ = 0x00; //raw_ad
+				int x = (a-4)&0xff;
+				for(int j=0;j<4;j++){
+					uint32_t rawv = hx_rawv[(x+j)&0xff];
+					*pTx++ = rawv&0xff;
+					*pTx++ = (rawv>>8)&0xff;
+					*pTx++ = (rawv>>16)&0xff;
+				}
+				usb_bytes += 1+3*4;
+			}
+			if(usb_auto_report.short_filter){
+				*pTx++ = 0x01;
+				*pTx++ = f8&0xff;
+				*pTx++ = (f8>>8)&0xff;
+				*pTx++ = (f8>>16)&0xff;
+				usb_bytes += 1+3;
+			}
 			if(abs(f8 - last_f8) > 200){
 				filt_level = 3;
 				calc_load_x0();
@@ -102,6 +124,13 @@ int app(void)
 					mg_disp = calc_mg_fast(mean_d);
 				}
 				last = mean_d;
+				if(usb_auto_report.display){
+					*pTx++ = 5;
+					*pTx++ = mg_disp&0xff;
+					*pTx++ = (mg_disp>>8)&0xff;
+					*pTx++ = (mg_disp>>16)&0xff;
+					usb_bytes += 1+3;
+				}
 				show_mg10(*oled, dev, DIV_ROUND(mg_disp, 10));
 				snprintf(str, 6, "%4d", filt_level);
 				oled->setVHAddr(Vert_Mode, 98, 127, 5, 5);
@@ -117,11 +146,36 @@ int app(void)
 				}
 				last_mean = mean_d;
 			}
+			if(usb_bytes != 0 && i != 3){
+				usbd->Send_Pack(0x81, usb_bytes);
+				usb_bytes = 0;
+				pTx = &USB_EP1_buffer[64];
+			}
 			a += 4;
 			Wait_ADC24_b(a);
 		}
 		f32 = hann_filter(5, a);
+		if(usb_auto_report.long_filter){
+			*pTx++ = 0x02;
+			*pTx++ = f32&0xff;
+			*pTx++ = (f32>>8)&0xff;
+			*pTx++ = (f32>>16)&0xff;
+			usb_bytes += 1+3;
+		}
 		mg32 = calc_mg(f32);
+		if(usb_auto_report.creep_corr){
+			*pTx++ = 0x03;
+			*pTx++ = creep_stat&0xff;
+			*pTx++ = (creep_stat>>8)&0xff;
+			*pTx++ = (creep_stat>>16)&0xff;
+			usb_bytes += 1+3;
+		}
+		if(usb_bytes != 0){
+			usbd->Send_Pack(0x81, usb_bytes);
+			usb_bytes = 0;
+			pTx = &USB_EP1_buffer[64];
+		}
+
 		update_plot(*oled, dev);
 		snprintf(str, 6, "%4d", az_count);
 		oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
@@ -130,10 +184,6 @@ int app(void)
 		snprintf(str, 6, "%5d", creep_stat/10);
 		oled->setVHAddr(Vert_Mode, 98, 127, 7, 7);
 		oled->text_5x7(str);
-
-		*(int32_t *)&str[0] = f32;
-		*(int32_t *)&str[4] = calc_creep(f32);
-		usbd->Send_Pack(0x81, str, 8);
 	}
 	return 0;
 }

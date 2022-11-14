@@ -21,26 +21,9 @@ typedef struct{
 	bool short_filter:1;  //短期滤波
 	bool long_filter:1;   //长期滤波
 	bool creep_corr:1;    //蠕变补偿
-	bool temp_corr:1;     //温度补偿
-	bool buoyancy_corr:1; //空气浮力补偿
-	bool all_corr:1;      //总补偿
-	bool corr_res:1;      //补偿结果
 	bool zero_point:1;    //零点值
-	bool tare_point:1;    //去皮值
 	bool display:1;       //显示值
-}USBCMD_Data1Req;
-
-//辅助数据
-typedef struct{
-	bool air_temp1:1;     //湿度传感器的温度
-	bool air_hum:1;       //湿度
-	bool air_temp2:1;     //气压传感器的温度
-	bool air_press:1;     //气压
-	bool air_temp_raw:1;  //气压传感器的温度原始数据
-	bool air_press_raw:1; //气压原始数据
-	bool air_dentsity:1;  //空气密度(计算)
-	bool volume:1;        //物品体积
-}USBCMD_Data2Req;
+}USBCMD_DataReq;
 
 
 //设备状态
