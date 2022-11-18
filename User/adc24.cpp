@@ -18,6 +18,7 @@
 #include "adc24.hpp"
 #include "c_pin.hpp"
 #include "hx711.hpp"
+#include "pins_config.h"
 
 int32_t hx_rawv[256];  //HX711原始数据
 volatile int hx_i = 0; //已读取数据个数
@@ -29,14 +30,14 @@ void HX_Init()
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	C_Pin sck = C_Pin((int)0, 10);
-	C_Pin dout = C_Pin((int)0, 9);
+	C_Pin sck = C_Pin(ADC24_SCLK_Port, ADC24_SCLK_Pin);
+	C_Pin dout = C_Pin(ADC24_DRDO_Port, ADC24_DRDO_Pin);
 	sck.loadXCfg(GPIO_GP_PP0);
 	dout.loadXCfg(GPIO_In_Float);
 	hx = new HX711(sck, dout);
 	hx->Init(HX711_CHA_128);
 
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9);
+	GPIO_EXTILineConfig(ADC24_DRDO_EXTI_PortSource, ADC24_DRDO_EXTI_PinSource);
 	EXTI_InitStructure.EXTI_Line = EXTI_Line9;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;

@@ -30,6 +30,7 @@
 #include "ops.h"
 #include "usbcmd.h"
 #include "params.h"
+#include "pins_config.h"
 
 
 extern C_USBD *usbd;
@@ -47,13 +48,24 @@ extern volatile int32_t x0_lastclr;
 extern uint8_t USB_EP1_buffer[128];
 extern USBCMD_DataReq usb_auto_report;
 
+C_Pin *dpwr;
+C_Pin *apwr;
+
 int app(void)
 {
 	USBHD_Init();
 	Params_Init();
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
-	C_Pin scl = C_Pin(1, 10);
-	C_Pin sda = C_Pin(1, 11);
+	
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
+	dpwr = new C_Pin(DPWR_Port, DPWR_Pin);
+	apwr = new C_Pin(APWR_Port, APWR_Pin);
+	dpwr->loadXCfg(GPIO_GP_PP1);
+	apwr->loadXCfg(GPIO_GP_PP1);
+	dpwr->write_pin(Pin_Set);
+	
+	C_Pin scl = C_Pin(OLED_SCL_Port, OLED_SCL_Pin);
+	C_Pin sda = C_Pin(OLED_SDA_Port, OLED_SDA_Pin);
 	scl.loadXCfg(GPIO_GP_OD1);
 	sda.loadXCfg(GPIO_GP_OD1);
 	S_I2C si2c = S_I2C(scl, sda);
@@ -62,8 +74,10 @@ int app(void)
 	oled = new SSD1306(&dev);
 	oled->Init();
 	oled->fill(0x00);
+	oled->commd_bytes(OutScan_Inv);
+	oled->commd_bytes(Seg_Remap1);
 
-	Keyboard_Init(72, 5000);
+	//Keyboard_Init(72, 5000);
 	kfdown[12] = &calc_clear;
 
 	HX_Init();
