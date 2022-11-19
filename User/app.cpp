@@ -70,7 +70,7 @@ int app(void)
 	oled->commd_bytes(OutScan_Inv);
 	oled->commd_bytes(Seg_Remap1);
 
-	//Keyboard_Init(72, 5000);
+	Keyboard_Init(72, 5000);
 	kfdown[12] = &calc_clear;
 
 	HX_Init();

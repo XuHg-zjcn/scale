@@ -29,29 +29,39 @@
  *            col 1 2 3 4
  */
 
-#define GPIO_Port_Row     GPIOA
-#define GPIO_Pin_Row1     GPIO_Pin_7
-#define GPIO_Pin_Row2     GPIO_Pin_6
-#define GPIO_Pin_Row3     GPIO_Pin_5
-#define GPIO_Pin_Row4     GPIO_Pin_4
-#define GPIO_Pin_Row_All  GPIO_Pin_Row1 | GPIO_Pin_Row2 | GPIO_Pin_Row3 | GPIO_Pin_Row4
+#define GPIO_Port_Row     GPIOB
+#define GPIO_Pin_Row1     GPIO_Pin_14
+#define GPIO_Pin_Row2     GPIO_Pin_13
+#define GPIO_Pin_Row3     GPIO_Pin_12
+#define GPIO_Pin_Row4     GPIO_Pin_11
+#define GPIO_Pin_Row_All  (GPIO_Pin_Row1 | GPIO_Pin_Row2 | GPIO_Pin_Row3 | GPIO_Pin_Row4)
 
-#define GPIO_Port_Col     GPIOA
-#define GPIO_Pin_Col1     GPIO_Pin_3
-#define GPIO_Pin_Col2     GPIO_Pin_2
-#define GPIO_Pin_Col3     GPIO_Pin_1
-#define GPIO_Pin_Col4     GPIO_Pin_0
-#define GPIO_Pin_Col_All  GPIO_Pin_Col1 | GPIO_Pin_Col2 | GPIO_Pin_Col3 | GPIO_Pin_Col4
+#define GPIO_Port_Col1    GPIOB
+#define GPIO_Pin_Col1     GPIO_Pin_15
+
+#define GPIO_Port_Col234  GPIOA
+#define GPIO_Pin_Col2     GPIO_Pin_8
+#define GPIO_Pin_Col3     GPIO_Pin_9
+#define GPIO_Pin_Col4     GPIO_Pin_10
+#define GPIO_Pin_Col234   (GPIO_Pin_Col2 | GPIO_Pin_Col3 | GPIO_Pin_Col4)
+
+
+//高电平(弹起)为0，低电平(按下)为1
+uint32_t Read_Cols()
+{
+        return ((((~GPIO_ReadInputData(GPIOA))>>7)&0x0e) | (((~GPIO_ReadInputData(GPIOB))>>15)&0x01));
+}
+
+
 
 #define TIM_Keyboard      TIM3
 #define Key_Nchrg         3
 
 void TIM3_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
-int32_t scan_i;  //Rowx-1
-uint32_t keystat = 0;
-uint32_t keychrg = 0;
-uint8_t keycount[16];
+uint32_t keystat = 0;  //当前状态
+uint32_t keychrg = 0;  //变化检测中
+uint8_t keycount[16];  //消抖计数
 keyfunc kfdown[16];
 keyfunc kfup[16];
 
@@ -66,18 +76,24 @@ void Keyboard_Init(uint16_t psc, uint16_t arr)
     TIM_OCInitTypeDef       TIM_OCInitStructure = {0};
     NVIC_InitTypeDef        NVIC_InitStructure = {0};
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_Row_All;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
     GPIO_Init(GPIO_Port_Row, &GPIO_InitStructure);
+    GPIO_ResetBits(GPIO_Port_Row, GPIO_Pin_Row_All);
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_Col_All;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_Col1;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_Init(GPIO_Port_Col, &GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+    GPIO_Init(GPIO_Port_Col1, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_Col234;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+    GPIO_Init(GPIO_Port_Col234, &GPIO_InitStructure);
 
     TIM_TimeBaseInitStructure.TIM_Period = arr;
     TIM_TimeBaseInitStructure.TIM_Prescaler = psc;
@@ -107,40 +123,49 @@ void TIM3_IRQHandler(void)
 {
     if(TIM_GetFlagStatus(TIM_Keyboard, TIM_FLAG_Update)){
         TIM_ClearFlag(TIM_Keyboard, TIM_FLAG_Update);
-	uint32_t curr = (~GPIO_ReadInputData(GPIO_Port_Col))&0x0f;
-        uint32_t old = (keystat>>scan_i*4)&0x0f;
-        uint32_t kxor = curr^old;
-        if(kxor | (keychrg>>scan_i*4)&0x0f){
+        if(keystat || keychrg || Read_Cols()){
             for(int i=0;i<4;i++){
-               int key_i = scan_i*4+i;
-               if(kxor&1){
-                   if(++keycount[key_i] >= Key_Nchrg){
-                       keycount[key_i] = 0;
-                       if((curr>>i)&1){
-                           keystat |= 1<<(key_i);
-                           if(kfdown[key_i]){
-                               kfdown[key_i]();
-                           }
-                       }else{
-                           keystat &= ~(1<<key_i);
-                           if(kfup[key_i]){
-                               kfup[key_i]();
-                           }
-                       }
-		       keychrg &= ~(1<<key_i);
-                   }else{
-                       keychrg |= 1<<key_i;
-		   }
-               }else{
-                   keycount[key_i] = 0;
-                   keychrg &= ~(1<<key_i);
-               }
-               kxor>>=1;
+                GPIO_SetBits(GPIO_Port_Row, GPIO_Pin_Row_All);
+                GPIO_ResetBits(GPIO_Port_Row, GPIO_Pin_14>>i);
+                Delay_Us(1);
+                uint32_t old = (keystat>>(i*4))&0x0f;
+                uint32_t curr = Read_Cols();
+                uint32_t kxor = curr^old;
+                if(!kxor && !keychrg){
+                    continue;  //不需要检查每个按钮
+                }
+                for(int j=0;j<4;j++){
+                    int key_i = i*4+j;
+                    if(kxor & 1){  //有变化
+                        if(++keycount[key_i] >= Key_Nchrg){  //消抖延时够了
+                            keycount[key_i] = 0;
+                            if(curr&1){  //现在是按下
+                                keystat |= 1<<key_i;
+                                if(kfdown[key_i]){
+                                    kfdown[key_i]();
+                                }
+                            }else{       //现在是弹起
+                                keystat &= ~(1<<key_i);
+                                if(kfup[key_i]){
+                                    kfup[key_i]();
+                                }
+                            }
+                            keychrg &= ~(1<<key_i);
+                        }else{
+                            keychrg |= 1<<key_i;
+                        }
+                    }else{  //没有变化
+                        keycount[key_i] = 0;
+                        keychrg &= ~(1<<key_i);
+                    }
+                    kxor >>= 1;
+                    curr >>= 1;
+                }
             }
         }
-        GPIO_SetBits(GPIO_Port_Row, GPIO_Pin_Row_All);
-        scan_i = (scan_i+1)&0b11;
-        GPIO_ResetBits(GPIO_Port_Row, GPIO_Pin_7>>scan_i);
+        if(!keystat){
+            GPIO_ResetBits(GPIO_Port_Row, GPIO_Pin_Row_All);
+        }
     }
 }
 
