@@ -66,7 +66,7 @@ int app(void)
 	S_I2C_Dev dev = S_I2C_Dev(&si2c, Addr_OLED);
 	oled = new SSD1306(&dev);
 	oled->Init();
-	oled->fill(0x00);
+	oled->fill(0xf0);
 	oled->commd_bytes(OutScan_Inv);
 	oled->commd_bytes(Seg_Remap1);
 
@@ -86,6 +86,7 @@ int app(void)
 	int mg32 = 0;
 	uint8_t *pTx = &USB_EP1_buffer[64];
 	int32_t usb_bytes = 0;
+	oled->fill(0x00);
 	while(1){
 		for(int i=0;i<4;i++){
 			int f8 = hann_filter(3, a);
