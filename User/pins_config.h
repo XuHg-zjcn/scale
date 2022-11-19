@@ -18,12 +18,14 @@
 //电源键
 #define PWRK_Port     (int)0
 #define PWRK_Pin      0
+#define PWRK_EXTI_PortSource  GPIO_PortSourceGPIOA
+#define PWRK_EXTI_PinSource   GPIO_PinSource0
+
 
 //电源控制引脚
 #define DPWR_Port     (int)0
-#define DPWR_Pin      13
+#define DPWR_Pin      14
 #define APWR_Port     1
 #define APWR_Pin      7
-
 
 #endif

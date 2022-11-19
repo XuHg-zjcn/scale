@@ -31,6 +31,7 @@
 #include "usbcmd.h"
 #include "params.h"
 #include "pins_config.h"
+#include "power.h"
 
 
 extern C_USBD *usbd;
@@ -48,21 +49,13 @@ extern volatile int32_t x0_lastclr;
 extern uint8_t USB_EP1_buffer[128];
 extern USBCMD_DataReq usb_auto_report;
 
-C_Pin *dpwr;
-C_Pin *apwr;
 
 int app(void)
 {
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
+	Power_Init();
 	USBHD_Init();
 	Params_Init();
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
-	
-	GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
-	dpwr = new C_Pin(DPWR_Port, DPWR_Pin);
-	apwr = new C_Pin(APWR_Port, APWR_Pin);
-	dpwr->loadXCfg(GPIO_GP_PP1);
-	apwr->loadXCfg(GPIO_GP_PP1);
-	dpwr->write_pin(Pin_Set);
 	
 	C_Pin scl = C_Pin(OLED_SCL_Port, OLED_SCL_Pin);
 	C_Pin sda = C_Pin(OLED_SDA_Port, OLED_SDA_Pin);
