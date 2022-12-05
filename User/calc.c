@@ -102,7 +102,16 @@ int64_t last_nvar(int n, int32_t s)
 //恢复稍前记录的值为x0
 void calc_load_x0()
 {
-	x0_display = x0_buffer[max(az_count-3, 0)&0x03];
+	if(az_count <= 2){
+		x0_display = x0_buffer[0];
+	}else if(az_count == 3){
+		x0_display = (x0_buffer[(az_count-3)&0x03] + \
+		              x0_buffer[(az_count-2)&0x03])/2;
+	}else{
+		x0_display = (x0_buffer[(az_count-4)&0x03] + \
+		              x0_buffer[(az_count-3)&0x03] + \
+			      x0_buffer[(az_count-2)&0x03])/3;
+	}
 	az_count = 0;
 }
 
