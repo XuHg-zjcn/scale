@@ -18,6 +18,7 @@
 #include "keys.h"
 #include "ch32v10x.h"
 #include "ops.h"
+#include "power.h"
 
 /*
  * |  键盘样式  | keystat |
@@ -149,6 +150,7 @@ void TIM3_IRQHandler(void)
                                 if(kfup[key_i]){
                                     kfup[key_i]();
                                 }
+                                Update_AutoPowerOff();
                             }
                             keychrg &= ~(1<<key_i);
                         }else{

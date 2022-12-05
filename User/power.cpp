@@ -3,6 +3,9 @@
 #include "ch32v10x.h"
 #include "pins_config.h"
 
+#define AutoPowerOff_ms   300000ULL
+extern uint16_t p_ms;
+
 C_Pin *pwrk;
 C_Pin *dpwr;
 C_Pin *apwr;
@@ -38,6 +41,19 @@ void Power_Init()
         NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
         NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
         NVIC_Init(&NVIC_InitStructure);
+
+        NVIC_InitStructure.NVIC_IRQChannel = SysTicK_IRQn;
+        NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+        NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+        NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+        NVIC_Init(&NVIC_InitStructure);
+
+        Update_AutoPowerOff();
+}
+
+void Update_AutoPowerOff()
+{
+        Set_SysTick_Cmp(Get_SysTick_Safe()+AutoPowerOff_ms*p_ms);
 }
 
 void Power_Off()
@@ -53,4 +69,9 @@ void EXTI0_IRQHandler()
 		Power_Off();
 	}
 	PA0_count++;
+}
+
+void SysTick_Handler()
+{
+	Power_Off();
 }
