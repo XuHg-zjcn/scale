@@ -74,9 +74,9 @@ int app(void)
 	kfdown[12] = &calc_clear;
 
 	HX_Init();
-	Wait_ADC24_b(48);
+	Wait_ADC24_b(32);
 	calc_init(hann_filter(5, hx_i-1));
-	int a = 32;
+	int a = 16;
 	char str[8];
 	int filt_level = 3;  //滤波器等级
 	int last_disp_i = 32;

@@ -131,15 +131,15 @@ int isSoftClear(int32_t x, int32_t mg_lclr, int32_t mg_disp)
 		if(abs(mg_disp) > 50){
 			return 0;
 		}
-		int sum = last_sum(5);
-		if(abs(sum-x*5) > 40*5){
+		int sum = last_sum(3);
+		if(abs(sum-x*3) > 40*2){
 			return 0;
 		}
-		int var = last_nvar(5, sum);
-		if(var > 500*5){
+		int var = last_nvar(3, sum);
+		if(var > 500*3){
 			return 0;
 		}
-		int midd = last_midd(5);
+		int midd = last_midd(3);
 		if(abs(midd-x) > 40){
 			return 0;
 		}
