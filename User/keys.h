@@ -25,25 +25,25 @@ extern "C"{
 #endif
 
 
-#define KEY_1     (1<<3)
-#define KEY_2     (1<<2)
-#define KEY_3     (1<<1)
-#define KEY_SET   (1<<0)
+#define KEY_1     (1<<0)
+#define KEY_2     (1<<1)
+#define KEY_3     (1<<2)
+#define KEY_SET   (1<<3)
 
-#define KEY_4     (1<<7)
-#define KEY_5     (1<<6)
-#define KEY_6     (1<<5)
-#define KEY_MOD   (1<<4)
+#define KEY_4     (1<<4)
+#define KEY_5     (1<<5)
+#define KEY_6     (1<<6)
+#define KEY_MOD   (1<<7)
 
-#define KEY_7     (1<<11)
-#define KEY_8     (1<<10)
-#define KEY_9     (1<<9)
-#define KEY_OK    (1<<8)
+#define KEY_7     (1<<8)
+#define KEY_8     (1<<9)
+#define KEY_9     (1<<10)
+#define KEY_OK    (1<<11)
 
-#define KEY_PM    (1<<15)
-#define KEY_0     (1<<14)
-#define KEY_PT    (1<<13)
-#define KEY_CLR   (1<<12)
+#define KEY_PM    (1<<12)
+#define KEY_0     (1<<13)
+#define KEY_PT    (1<<14)
+#define KEY_CLR   (1<<15)
 
 
 typedef void (*keyfunc)(void);

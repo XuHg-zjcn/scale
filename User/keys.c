@@ -60,9 +60,9 @@ uint32_t Read_Cols()
 
 void TIM3_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
-uint32_t keystat = 0;  //当前状态
-uint32_t keychrg = 0;  //变化检测中
-uint8_t keycount[16];  //消抖计数
+volatile uint32_t keystat = 0;  //当前状态
+static uint32_t keychrg = 0;  //变化检测中
+static uint8_t keycount[16];  //消抖计数
 keyfunc kfdown[16];
 keyfunc kfup[16];
 

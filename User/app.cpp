@@ -39,7 +39,7 @@ extern int32_t hx_rawv[256];  //HX711原始数据
 extern volatile int hx_i; //存放下一次数据的位置
 SSD1306 *oled;
 
-extern uint32_t keystat;
+extern volatile uint32_t keystat;
 extern int az_count;
 extern int32_t filt_data[128];
 extern int filt_i;
@@ -71,7 +71,7 @@ int app(void)
 	oled->commd_bytes(Seg_Remap1);
 
 	Keyboard_Init(72, 5000);
-	kfdown[12] = &calc_clear;
+	kfdown[15] = &calc_clear;
 
 	HX_Init();
 	Wait_ADC24_b(32);
