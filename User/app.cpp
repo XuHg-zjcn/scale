@@ -32,6 +32,7 @@
 #include "params.h"
 #include "pins_config.h"
 #include "power.h"
+#include "creep.h"
 
 
 extern C_USBD *usbd;
@@ -44,7 +45,7 @@ extern int az_count;
 extern int32_t filt_data[128];
 extern int filt_i;
 extern int32_t last;
-extern int32_t creep_stat;
+extern int32_t creep_s1, creep_s2;
 extern volatile int32_t x0_lastclr;
 extern uint8_t USB_EP1_buffer[128];
 extern USBCMD_DataReq usb_auto_report;
@@ -173,9 +174,9 @@ int app(void)
 		mg32 = calc_mg(f32);
 		if(usb_auto_report.creep_corr){
 			*pTx++ = 0x03;
-			*pTx++ = creep_stat&0xff;
-			*pTx++ = (creep_stat>>8)&0xff;
-			*pTx++ = (creep_stat>>16)&0xff;
+			*pTx++ = creep_s2&0xff;
+			*pTx++ = (creep_s2>>8)&0xff;
+			*pTx++ = (creep_s2>>16)&0xff;
 			usb_bytes += 1+3;
 		}
 		if(usb_bytes != 0){
@@ -189,7 +190,7 @@ int app(void)
 		oled->setVHAddr(Vert_Mode, 98, 127, 6, 6);
 		oled->text_5x7(str);
 
-		snprintf(str, 6, "%5d", creep_stat/10);
+		snprintf(str, 6, "%5d", creep_delta(f32));
 		oled->setVHAddr(Vert_Mode, 98, 127, 7, 7);
 		oled->text_5x7(str);
 	}

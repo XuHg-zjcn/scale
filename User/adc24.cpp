@@ -19,6 +19,7 @@
 #include "c_pin.hpp"
 #include "hx711.hpp"
 #include "pins_config.h"
+#include "creep.h"
 
 int32_t hx_rawv[256];  //HX711原始数据
 volatile int hx_i = 0; //已读取数据个数
@@ -55,6 +56,7 @@ void EXTI9_5_IRQHandler(void)
 {
 	if(EXTI_GetITStatus(EXTI_Line9) != RESET){
 		hx_rawv[hx_i&0xff] = hx->block_raw();
+		creep_update(hx_rawv[hx_i&0xff]);
 		hx_i++;
 		//if(hx_i%8 == 0){
 		//      usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);

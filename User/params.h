@@ -7,10 +7,15 @@
 extern "C"{
 #endif
 
+// Y_pred[t] = Y_adc[t] + delta_1[t] + delta_2[t]
+// delta_i[t] = A_i*(Y_adc[t] - stat_i[t])
+// stat_i[t] = (1-c_i)*stat_i[t-1] + c_i*Y_adc[t]
 typedef struct{
         uint32_t mgLSB;
-        uint32_t creep_change;
-        uint32_t creep_coeff;
+        uint32_t creep_A1;
+        uint32_t creep_c1;
+        uint32_t creep_A2;
+        uint32_t creep_c2;
 }Params;
 
 void Params_Init();

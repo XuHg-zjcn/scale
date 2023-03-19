@@ -2,7 +2,13 @@
 #include "ch32v10x_flash.h"
 
 const Params *params;
-const Params p_default = {2541763628, 209488456, 440411};
+const Params p_default = {
+	.mgLSB = 2544360965,
+	.creep_A1 = 257698,
+	.creep_c1 = 373229581,
+	.creep_A2 = 442381,
+	.creep_c2 = 17145555,
+};
 
 void Params_Init()
 {
@@ -39,7 +45,9 @@ void Params_Write(const Params* p)
 		FLASH_ErasePage((uint32_t)params);
 	}
 	FLASH_ProgramWord((uint32_t)&params->mgLSB, p->mgLSB);
-	FLASH_ProgramWord((uint32_t)&params->creep_change, p->creep_change);
-	FLASH_ProgramWord((uint32_t)&params->creep_coeff, p->creep_coeff);
+	FLASH_ProgramWord((uint32_t)&params->creep_A1, p->creep_A1);
+	FLASH_ProgramWord((uint32_t)&params->creep_c1, p->creep_c1);
+	FLASH_ProgramWord((uint32_t)&params->creep_A2, p->creep_A2);
+	FLASH_ProgramWord((uint32_t)&params->creep_c2, p->creep_c2);
 	FLASH_Lock();
 }

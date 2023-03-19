@@ -28,20 +28,21 @@ N = 64
 
 if __name__ == '__main__':
     ep_r, ep_w = find_usb()
+    ep_w.write(b'\x01\x01')
     lst = []
     win = signal.windows.hann(N)
     win /= win.mean()
     while True:
-        data = ep_r.read(4*8, timeout=0)
-        values = struct.unpack('i'*8, data)
-        lst.extend(values)
+        data = ep_r.read(13, timeout=0)
+        for i in range(len(data)//3):
+            lst.append(int.from_bytes(data[1+i*3:1+i*3+3], 'little', signed=True))
         if len(lst) < N:
             continue
         lst = lst[-N:]
         nlst = np.array(lst)
         wlst = win*nlst
         wmlst = win*(nlst-nlst.mean())
-        print(f'{np.mean(wlst):10.1f}, {np.std(nlst):6.2f}')
+        print(f'{np.mean(wlst):10.1f}, {np.std(nlst,ddof=1):6.2f}')
         plt.cla()
         #fftr = np.abs(np.fft.rfft(wmlst))[1:]/math.sqrt(N)
         #plt.plot(np.convolve(fftr, flt, 'same'))
