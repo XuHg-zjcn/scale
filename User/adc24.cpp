@@ -21,8 +21,8 @@
 #include "pins_config.h"
 #include "creep.h"
 
-int32_t hx_rawv[256];  //HX711原始数据
-volatile int hx_i = 0; //已读取数据个数
+int32_t adc_creepcorr[256];  //ADC数据经过蠕变修正后
+volatile int adc_i = 0; //已读取数据个数
 
 HX711 *hx;
 
@@ -55,12 +55,10 @@ void HX_Init()
 void EXTI9_5_IRQHandler(void)
 {
 	if(EXTI_GetITStatus(EXTI_Line9) != RESET){
-		hx_rawv[hx_i&0xff] = hx->block_raw();
-		creep_update(hx_rawv[hx_i&0xff]);
-		hx_i++;
-		//if(hx_i%8 == 0){
-		//      usbd->Send_Pack(0x81, &hx_rawv[(hx_i-8)&0xff], 4*8);
-		//}
+		int32_t adc_value = hx->block_raw();
+		creep_update(adc_value);
+		adc_creepcorr[adc_i&0xff] = adc_value + creep_delta(adc_value);
+		adc_i++;
 		EXTI_ClearITPendingBit(EXTI_Line9);
 		GPIO_SetBits(GPIOC, GPIO_Pin_13);
 	}
@@ -68,12 +66,12 @@ void EXTI9_5_IRQHandler(void)
 
 void Wait_ADC24_b(int b)
 {
-	while(hx_i < b);
+	while(adc_i < b);
 }
 
 int Wait_ADC24_n(int n)
 {
-	int x = hx_i;
+	int x = adc_i;
 	Wait_ADC24_b(x+n);
 	return x;
 }

@@ -30,7 +30,7 @@ const uint32_t const *pWins[6] = {
 	win_hann64, win_hann128, win_hann256
 };
 
-extern int32_t hx_rawv[256];
+extern int32_t adc_creepcorr[256];
 
 int32_t hann_filter(uint32_t win2N, int curr){
 	if(win2N < 3 || win2N > 8){
@@ -42,11 +42,11 @@ int32_t hann_filter(uint32_t win2N, int curr){
 	curr -= 1UL<<win2N;
 	//先计算前半窗口，减少被后续数据覆盖可能
 	for(int j=0;j<hwin;j++){
-		sum_x += ((int64_t)hx_rawv[(curr+j)&0xff]*pwin[j])>>32;
+		sum_x += ((int64_t)adc_creepcorr[(curr+j)&0xff]*pwin[j])>>32;
 	}
 	curr += (1UL<<win2N) - 1;
         for(int j=hwin-1;j>=0;j--){
-		sum_x += ((int64_t)hx_rawv[(curr-j)&0xff]*pwin[j])>>32;
+		sum_x += ((int64_t)adc_creepcorr[(curr-j)&0xff]*pwin[j])>>32;
 	}
 	return sum_x>>(win2N-1);
 }

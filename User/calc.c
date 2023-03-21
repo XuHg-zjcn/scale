@@ -151,7 +151,6 @@ int isSoftClear(int32_t x, int32_t mg_lclr, int32_t mg_disp)
  */
 int32_t calc_mg(int32_t x)
 {
-	x += creep_delta(x);
 	filt_data[(filt_i+1)&0x7f] = x;
 	filt_i = (filt_i+1)&0x7f;
 	int32_t mg_lclr = (((int64_t)(x-x0_lastclr))*params->mgLSB)>>32;
@@ -167,11 +166,5 @@ int32_t calc_mg(int32_t x)
 
 int32_t calc_mg_fast(int32_t x)
 {
-	x += creep_delta(x);
 	return (((int64_t)(x-x0_display))*params->mgLSB)>>32;
-}
-
-int32_t calc_creep(int32_t x)
-{
-	return x + creep_delta(x);
 }

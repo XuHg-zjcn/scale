@@ -36,8 +36,8 @@
 
 
 extern C_USBD *usbd;
-extern int32_t hx_rawv[256];  //HX711原始数据
-extern volatile int hx_i; //存放下一次数据的位置
+extern int32_t adc_creepcorr[256];
+extern volatile int adc_i; //存放下一次数据的位置
 SSD1306 *oled;
 
 extern volatile uint32_t keystat;
@@ -76,7 +76,7 @@ int app(void)
 
 	HX_Init();
 	Wait_ADC24_b(32);
-	calc_init(hann_filter(5, hx_i-1));
+	calc_init(hann_filter(5, adc_i-1));
 	int a = 16;
 	char str[8];
 	int filt_level = 3;  //滤波器等级
@@ -95,10 +95,10 @@ int app(void)
 				*pTx++ = 0x00; //raw_ad
 				int x = (a-4)&0xff;
 				for(int j=0;j<4;j++){
-					uint32_t rawv = hx_rawv[(x+j)&0xff];
-					*pTx++ = rawv&0xff;
-					*pTx++ = (rawv>>8)&0xff;
-					*pTx++ = (rawv>>16)&0xff;
+					uint32_t value = adc_creepcorr[(x+j)&0xff];
+					*pTx++ = value&0xff;
+					*pTx++ = (value>>8)&0xff;
+					*pTx++ = (value>>16)&0xff;
 				}
 				usb_bytes += 1+3*4;
 			}

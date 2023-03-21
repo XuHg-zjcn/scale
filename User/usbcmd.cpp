@@ -38,8 +38,8 @@ const struct StringDescrs{
 C_USBD *usbd;
 uint8_t USB_EP1_buffer[128];
 
-extern int32_t hx_rawv[256];  //HX711原始数据
-extern volatile int hx_i; //存放下一次数据的位置
+extern int32_t adc_creepcorr[256];  //HX711原始数据
+extern volatile int adc_i; //存放下一次数据的位置
 
 USBCMD_DataReq usb_auto_report = {0};
 
@@ -57,7 +57,7 @@ int USBCMD_CollData(USBCMD_DataReq *req, uint8_t *pTx)
 {
   int n = 0;
   if(req->raw_ad){
-	u32 data = hx_rawv[(hx_i-1)&0xff];
+	u32 data = adc_creepcorr[(adc_i-1)&0xff];
 	*pTx++ = data&0xff;
 	*pTx++ = (data>>8)&0xff;
 	*pTx++ = (data>>16)&0xff;
